@@ -2,15 +2,20 @@ package shkonda.danil.cryptotracker.screens
 
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ChipColors
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
@@ -39,6 +44,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import shkonda.danil.cryptotracker.R
 import shkonda.danil.cryptotracker.repository.CryptoRepository
 import shkonda.danil.cryptotracker.retrofit_builder.RetrofitModule
 import shkonda.danil.cryptotracker.states.UiState
@@ -78,17 +85,21 @@ fun MainScreen(repository: CryptoRepository) {
         labelColor = Color.Black
     )
 
-    //Получаем данные при первом запуске
-    LaunchedEffect(selectedCurrency) {
-        coroutineScope.launch {
-            val result = withContext(Dispatchers.IO) { repository.getCryptoData(selectedCurrency) }
-            state = if (result.isSuccess) {
-                UiState.Success(result.getOrDefault(emptyList()))
-            } else {
-                UiState.Error(result.exceptionOrNull()?.message.orEmpty())
-            }
+    suspend fun fetchCoinsData(selectedCurrency: String) {
+        // Вся работа должна выполняться здесь, без дополнительного запуска корутины
+        val result = withContext(Dispatchers.IO) { repository.getCryptoData(selectedCurrency) }
+        state = if (result.isSuccess) {
+            UiState.Success(result.getOrDefault(emptyList()))
+        } else {
+            UiState.Error(result.exceptionOrNull()?.message.orEmpty())
         }
     }
+
+    //Получаем данные при первом запуске
+    LaunchedEffect(selectedCurrency) {
+        fetchCoinsData(selectedCurrency)
+    }
+
 
     fun toggleChip(currency: String) {
         when (currency) {
@@ -175,7 +186,9 @@ fun MainScreen(repository: CryptoRepository) {
         // Отображение состояния
         when (state) {
             is UiState.Loading -> Box(
-                modifier = Modifier.padding(paddingValues).fillMaxSize(),
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
@@ -193,11 +206,53 @@ fun MainScreen(repository: CryptoRepository) {
                 selectedCurrency
             )
 
-            is UiState.Error -> Text(
-                text = "Error: ${(state as UiState.Error).errorMessage}",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
+            is UiState.Error ->
+                Box(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+
+                ) {
+                    Column(
+                        Modifier.size(width = 230.dp, height = 237.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.bitcoin_image),
+                            contentDescription = "Error image",
+                            Modifier.size(120.dp)
+                        )
+                        Spacer(modifier = Modifier.padding(bottom = 13.dp))
+                        Text(
+                            text = "Произошла какая-то ошибка :(\nПопробуем снова?",
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight(400),
+                            fontSize = 16.sp
+
+                        )
+                        Spacer(modifier = Modifier.padding(bottom = 30.dp))
+                        Button(
+                            onClick = {
+                                coroutineScope.launch {
+                                    fetchCoinsData(selectedCurrency)
+                                }
+                            },
+                            Modifier.size(width = 175.dp, height = 36.dp),
+                            shape = RoundedCornerShape(4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFF9F00)
+                            )
+                        ) {
+                            Text(
+                                text = "Попробовать".uppercase(),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight(500)
+                            )
+                        }
+                    }
+
+                }
         }
     }
 }
