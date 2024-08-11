@@ -1,8 +1,8 @@
 package shkonda.danil.cryptotracker.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +21,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -33,31 +36,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import shkonda.danil.cryptotracker.R
 import shkonda.danil.cryptotracker.repository.CoinListRepository
-import shkonda.danil.cryptotracker.states.CoinDataState
 import shkonda.danil.cryptotracker.states.CoinListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
+    // Переменные для управления состояним, корутиной и контекстом экрана
     var state by remember { mutableStateOf<CoinListState>(CoinListState.Loading) }
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
+    // Переменные для управления Chip'сов и обновлением экрана
     var selectedCurrency by remember { mutableStateOf("usd") }
     var selectedUsdChip by remember { mutableStateOf(true) }
     var selectedRubChip by remember { mutableStateOf(false) }
-
+    var isRefreshing by remember { mutableStateOf(false) }
 
     val chipColors = FilterChipDefaults.filterChipColors(
         selectedContainerColor = Color(0xcbffe4c0),
@@ -73,10 +77,13 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
             CoinListState.Success(result.getOrDefault(emptyList()))
         } else {
             val errorMessage = result.exceptionOrNull()?.message.orEmpty()
-            if (errorMessage.contains("Превышен лимит запросов")) {
-                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-            }
-            CoinListState.Error(result.exceptionOrNull()?.message.orEmpty())
+            // Отображаем ошибку через Snackbar
+            snackbarHostState.showSnackbar(
+                message = errorMessage,
+                actionLabel = "Retry",
+                duration = SnackbarDuration.Short
+            )
+            CoinListState.Error(errorMessage)
         }
     }
 
@@ -84,7 +91,6 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
     LaunchedEffect(selectedCurrency) {
         fetchCoinsData(selectedCurrency)
     }
-
 
     fun toggleChip(currency: String) {
         when (currency) {
@@ -166,6 +172,30 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
                     color = Color.Gray // Цвет полоски
                 )
             }
+        },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = {snackbarData ->
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFEB5757), RoundedCornerShape(8.dp))
+//                            .padding(16.dp)
+                            .size(width = 328.dp, height = 48.dp)
+//                            .padding(horizontal = 16.dp)
+                    ) {
+                        Text(
+                            text = "Произошла ошибка при загрузке",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .padding(start = 16.dp)
+                        )
+                    }
+                }
+            )
         }
     ) { paddingValues ->
         // Отображение состояния
@@ -189,7 +219,17 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
                     .fillMaxSize()
                     .padding(paddingValues),
                 selectedCurrency,
-                onCoinClick
+                onCoinClick,
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    coroutineScope.launch {
+                        isRefreshing = true
+                        // Снова вызываем функцию для получения данных о монетах
+                        fetchCoinsData(selectedCurrency)
+                        delay(1000)
+                        isRefreshing = false
+                    }
+                }
             )
 
             is CoinListState.Error ->

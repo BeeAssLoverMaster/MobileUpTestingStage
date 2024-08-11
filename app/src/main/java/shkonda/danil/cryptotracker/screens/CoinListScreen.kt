@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import shkonda.danil.cryptotracker.components.PullToRefreshLazy
 import shkonda.danil.cryptotracker.data_coins.entity.CoinsDto
 import java.text.NumberFormat
 import java.util.Locale
@@ -29,15 +28,19 @@ fun CoinListScreen(
     coins: List<CoinsDto>,
     modifier: Modifier,
     selectedCurrency: String,
-    onCoinClick: (String) -> Unit
+    onCoinClick: (String) -> Unit,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit
 ) {
-    LazyColumn(
-        modifier = modifier,
-    ) {
-        items(coins) { crypto ->
+    PullToRefreshLazy(
+        items = coins,
+        content = { crypto ->
             CryptoItem(crypto, selectedCurrency, onClick = { onCoinClick(crypto.id) })
-        }
-    }
+        },
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -46,6 +49,7 @@ fun CryptoItem(
     selectedCurrency: String,
     onClick: () -> Unit
 ) {
+    // Для чисел с большим значением добавляем разбиение на сотни и десятки
     val formattedCurrentPrice = NumberFormat.getNumberInstance(Locale.US).apply {
         maximumFractionDigits = 2
         minimumFractionDigits = 2
