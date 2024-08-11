@@ -1,9 +1,9 @@
 package shkonda.danil.cryptotracker.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -25,41 +24,28 @@ import shkonda.danil.cryptotracker.data_coins.entity.CoinsDto
 import java.text.NumberFormat
 import java.util.Locale
 
-val coinsList = listOf(
-    CoinsDto(
-        "",
-        "Bitcoin",
-        "biti",
-        "https://coin-images.coingecko.com/coins/images/1/large/bitcoin.png?1696501400",
-        2446123.12,
-        1.38955
-    )
-)
-
-@Preview
 @Composable
-private fun asddPrev() {
-    CryptoListScreen(
-        coins = coinsList, modifier = Modifier
-            .fillMaxSize()
-            .padding(50.dp),
-        "usd"
-    )
-}
-
-@Composable
-fun CryptoListScreen(coins: List<CoinsDto>, modifier: Modifier, selectedCurrency: String) {
+fun CoinListScreen(
+    coins: List<CoinsDto>,
+    modifier: Modifier,
+    selectedCurrency: String,
+    onCoinClick: (String) -> Unit
+) {
     LazyColumn(
         modifier = modifier,
     ) {
         items(coins) { crypto ->
-            CryptoItem(crypto, selectedCurrency)
+            CryptoItem(crypto, selectedCurrency, onClick = { onCoinClick(crypto.id) })
         }
     }
 }
 
 @Composable
-fun CryptoItem(crypto: CoinsDto, selectedCurrency: String) {
+fun CryptoItem(
+    crypto: CoinsDto,
+    selectedCurrency: String,
+    onClick: () -> Unit
+) {
     val formattedCurrentPrice = NumberFormat.getNumberInstance(Locale.US).apply {
         maximumFractionDigits = 2
         minimumFractionDigits = 2
@@ -69,6 +55,7 @@ fun CryptoItem(crypto: CoinsDto, selectedCurrency: String) {
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
+            .clickable(onClick = onClick)
             .padding(vertical = 8.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
