@@ -1,5 +1,6 @@
 package shkonda.danil.cryptotracker.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -32,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,6 +44,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import shkonda.danil.cryptotracker.R
 import shkonda.danil.cryptotracker.repository.CoinListRepository
+import shkonda.danil.cryptotracker.states.CoinDataState
 import shkonda.danil.cryptotracker.states.CoinListState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,6 +52,7 @@ import shkonda.danil.cryptotracker.states.CoinListState
 fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
     var state by remember { mutableStateOf<CoinListState>(CoinListState.Loading) }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var selectedCurrency by remember { mutableStateOf("usd") }
     var selectedUsdChip by remember { mutableStateOf(true) }
@@ -68,6 +72,10 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
         state = if (result.isSuccess) {
             CoinListState.Success(result.getOrDefault(emptyList()))
         } else {
+            val errorMessage = result.exceptionOrNull()?.message.orEmpty()
+            if (errorMessage.contains("Превышен лимит запросов")) {
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            }
             CoinListState.Error(result.exceptionOrNull()?.message.orEmpty())
         }
     }

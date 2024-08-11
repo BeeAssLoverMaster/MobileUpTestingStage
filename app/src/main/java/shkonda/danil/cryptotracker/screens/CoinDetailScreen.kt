@@ -1,6 +1,8 @@
 package shkonda.danil.cryptotracker.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -33,12 +35,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.text.HtmlCompat
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +66,7 @@ fun CoinDetailScreen(
 ) {
     var state by remember { mutableStateOf<CoinDataState>(CoinDataState.Loading) }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var coinDetail by remember { mutableStateOf<CoinDetailDto?>(null) }
 
@@ -69,7 +77,11 @@ fun CoinDetailScreen(
             CoinDataState.Success(data = result)
 
         } else {
-            CoinDataState.Error(result.exceptionOrNull()?.message.orEmpty())
+            val errorMessage = result.exceptionOrNull()?.message.orEmpty()
+            if (errorMessage.contains("Превышен лимит запросов")) {
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            }
+            CoinDataState.Error(errorMessage)
         }
     }
 
@@ -116,21 +128,18 @@ fun CoinDetailScreen(
                         contentDescription = "Coin icon",
                         modifier = Modifier
                             .size(90.dp)
-                            .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 16.dp),
+                            .align(Alignment.CenterHorizontally),
                         contentScale = ContentScale.Crop
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Описание",
                         fontWeight = FontWeight(500),
                         fontSize = 20.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    Text(
-                        text = coinDetail!!.description.en,
-                        fontWeight = FontWeight(400),
-                        fontSize = 16.sp
-                    )
+
+                    HtmlTextWithParagraphs(coinDetail!!.description.en)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Категории",
@@ -139,7 +148,7 @@ fun CoinDetailScreen(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Text(
-                        text = "Категории: ${coinDetail!!.categories.joinToString(", ")}",
+                        text = coinDetail!!.categories.joinToString(", "),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Normal
                     )
@@ -197,3 +206,34 @@ fun CoinDetailScreen(
         }
     }
 }
+
+@Composable
+fun HtmlTextWithParagraphs(html: String) {
+    // Функция для удаления HTML-тегов и сохранения абзацев
+    fun cleanHtmlText(html: String): String {
+        // Удаление HTML-тегов
+        var cleanedText = html
+            .replace(Regex("<p>"), "\n\n") // Замена <p> на двойной перевод строки
+            .replace(Regex("</p>"), "\n\n") // Замена </p> на двойной перевод строки
+            .replace(Regex("<br\\s*/?>"), "\n") // Замена <br> на перевод строки
+            .replace(Regex("<[^>]*>"), "") // Удаление всех остальных HTML-тегов
+        // Удаление лишних переводов строк
+        cleanedText = cleanedText.trim().replace(Regex("\\n{3,}"), "\n\n")
+        return cleanedText
+    }
+
+    // Очистка HTML-текста
+    val cleanedText = cleanHtmlText(html)
+
+    // Создание AnnotatedString для отображения текста
+    val annotatedString = buildAnnotatedString {
+        append(cleanedText)
+    }
+
+    Text(
+        text = annotatedString,
+        fontSize = 16.sp
+    )
+}
+
+
