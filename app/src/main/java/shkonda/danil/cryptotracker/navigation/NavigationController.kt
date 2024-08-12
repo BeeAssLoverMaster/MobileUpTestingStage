@@ -13,19 +13,30 @@ import shkonda.danil.cryptotracker.screens.MainScreen
 @Composable
 fun NavigationController(navController: NavHostController) {
 
-    val coinListRep = CoinListRepository(RetrofitModule.coinGeckoApi)
-    val coinDataRep = CoinDetailRepository(RetrofitModule.coinGeckoApi)
+    // Экземпляры репозиториев, хранящие данные, полученные из API
+    // В дальнейшем передаются в соответствующие экраны для обработки данных
+    val coinListRep = CoinListRepository(RetrofitModule.coinGeckoApi)   // Список монет
+    val coinDataRep = CoinDetailRepository(RetrofitModule.coinGeckoApi) // Подробные данные о монете
 
-    NavHost(navController, startDestination = "coins_list"){
+    // Определяем структуру навигации приложения с помощью NavHost
+    NavHost(navController, startDestination = "coins_list") {
+
+        // Определяем маршрут до главного экрана со списком всех монет
         composable("coins_list") {
+            // При нажатии на монеты вызывается лямбда-функция и происходит навигация на экран подробной информации
             MainScreen(repository = coinListRep) { coinId ->
                 navController.navigate("coin_detail/$coinId")
             }
         }
+        // Определяем маршрут до экрана с подробным описанием монеты на основе переданной coinId
         composable("coin_detail/{coinId}") { navBackStackEntry ->
             val coinId = navBackStackEntry.arguments?.getString("coinId")
             if (coinId != null) {
-                CoinDetailScreen(navController = navController, repository = coinDataRep, cryptoId = coinId)
+                CoinDetailScreen(
+                    navController = navController,
+                    repository = coinDataRep,
+                    cryptoId = coinId
+                )
             }
         }
     }

@@ -41,6 +41,7 @@ fun CoinListScreen(
         onRefresh = onRefresh,
         modifier = modifier
     )
+    println(isRefreshing)
 }
 
 @Composable

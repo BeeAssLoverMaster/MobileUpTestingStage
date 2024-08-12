@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +65,7 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
     var selectedRubChip by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
 
+    // Отдельно настраиваем цвета для валю в chip'ах
     val chipColors = FilterChipDefaults.filterChipColors(
         selectedContainerColor = Color(0xcbffe4c0),
         containerColor = Color(0x1f00001f),
@@ -92,6 +95,7 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
         fetchCoinsData(selectedCurrency)
     }
 
+    // Функция для контроля выбранной валюты
     fun toggleChip(currency: String) {
         when (currency) {
             "usd" -> {
@@ -167,6 +171,8 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
                         border = BorderStroke(0.dp, color = Color.Transparent)
                     )
                 }
+
+                // Добавляем под TopAppBar полоску в соответствии с дизайном
                 HorizontalDivider(
                     thickness = 1.dp,   // Толщина полоски
                     color = Color.Gray // Цвет полоски
@@ -174,15 +180,19 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
             }
         },
         snackbarHost = {
+            // Настраиваем всплывающее уведомление об ошибке
             SnackbarHost(
                 hostState = snackbarHostState,
-                snackbar = {snackbarData ->
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
+                snackbar = { snackbarData ->
                     Box(
                         modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(elevation = 4.dp, shape = RoundedCornerShape(8.dp)) // Небольшая тень под snackbar
                             .background(Color(0xFFEB5757), RoundedCornerShape(8.dp))
-//                            .padding(16.dp)
-                            .size(width = 328.dp, height = 48.dp)
-//                            .padding(horizontal = 16.dp)
+                            .height(48.dp)
                     ) {
                         Text(
                             text = "Произошла ошибка при загрузке",
@@ -200,6 +210,7 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
     ) { paddingValues ->
         // Отображение состояния
         when (state) {
+            // Пока данные не получены отображаем колесо загрузки
             is CoinListState.Loading -> Box(
                 modifier = Modifier
                     .padding(paddingValues)
@@ -213,10 +224,10 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
                 )
             }
 
+            // При получении данных отображаем их на экране
             is CoinListState.Success -> CoinListScreen(
                 (state as CoinListState.Success).coins,
                 modifier = Modifier
-                    .fillMaxSize()
                     .padding(paddingValues),
                 selectedCurrency,
                 onCoinClick,
@@ -224,14 +235,16 @@ fun MainScreen(repository: CoinListRepository, onCoinClick: (String) -> Unit) {
                 onRefresh = {
                     coroutineScope.launch {
                         isRefreshing = true
-                        // Снова вызываем функцию для получения данных о монетах
                         fetchCoinsData(selectedCurrency)
+
+                        // Добавляем задержку в секунду для красоты
                         delay(1000)
                         isRefreshing = false
                     }
                 }
             )
 
+            // Если получаем ошибку из API, то выводим на экран "заглушку"
             is CoinListState.Error ->
                 Box(
                     modifier = Modifier

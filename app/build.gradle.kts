@@ -67,6 +67,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    // Версия Material3 для добавления PullToRefreshBox()
+    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.3.0-beta05")
+
     // Retrofit 2
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
